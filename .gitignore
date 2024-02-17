@@ -1,3 +1,9 @@
+# Ignore Excel files
+*.xlsx
+
+# Ignore CSV files
+*.csv
+
 # Ignore compiled files
 *.class
 *.jar
