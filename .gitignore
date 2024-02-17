@@ -1,0 +1,13 @@
+# Ignore compiled files
+*.class
+*.jar
+\n# Ignore logs
+/logs/
+\n# Ignore configuration files with sensitive information
+/config/secret-config.yml
+# Ignore Python compiled files
+*.pyc
+
+# Ignore __pycache__ directory
+__pycache__/
+
