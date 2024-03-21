@@ -1,0 +1,29 @@
+{
+    "tau": {
+        "probability_threshold": 0.2,
+        "batch_size": 500,
+        "graph_conv_layers": [
+            64,
+            64,
+            64,
+            64
+        ],
+        "batchnorm": "False",
+        "dropout": 0,
+        "dense_layer_size": 256,
+        "epochs": 150
+    },
+    "app": {
+        "probability_threshold": 0.2,
+        "batch_size": 500,
+        "graph_conv_layers": [
+            64,
+            128,
+            64
+        ],
+        "batchnorm": "True",
+        "dropout": 0,
+        "dense_layer_size": 128,
+        "epochs": 150
+    }
+}
