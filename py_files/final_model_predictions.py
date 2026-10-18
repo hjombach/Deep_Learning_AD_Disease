@@ -28,6 +28,21 @@ import errno
 def define_parameters(target: str) -> dict:
     """
     Based on the specified target, load the optimal architecture.
+
+    Args:
+        target (str): The target of the model. Must be either 'tau' or 'app'.
+    
+    Returns:
+        dict - dictionary containing the model parameters for the specified target
+            - 'graph_conv_layers' (list): List of integers specifying the number of graph convolution layers
+            - 'batch_normalize' (bool): Whether to use batch normalization
+            - 'dropout' (float): Dropout rate
+            - 'dense_layer_size' (list): List of integers specifying the number of neurons in each dense layer
+            - 'batch_size' (int): Batch size
+            - 'probability_threshold' (float): Threshold for classifying compounds as active
+
+    Raises:
+        ValueError: If the target is not 'tau' or 'app'
     """
     with open('/home/paperspace/Desktop/DL_Project/data/final_model_params.json', 'r') as f:
         model_params=json.load(f)
@@ -40,6 +55,12 @@ def define_parameters(target: str) -> dict:
 def load_model_weights(target: str) -> str:
     """
     Based on the target, return the file path for the pre-trained model weights
+
+    Args:
+        target (str): The target of the model. Must be either 'tau' or 'app'.
+
+    Returns:
+        str - path to the appropriate model weights file
     """
     base_path="/home/paperspace/Desktop/DL_Project/py_files/"
 
@@ -55,7 +76,15 @@ def load_model_weights(target: str) -> str:
     return base_path + file_path
 
 def load_prediction_set() -> pd.DataFrame:
+    """
+    Load the prediction set from the pickle file.
 
+    Returns:
+        pd.DataFrame - DataFrame containing the prediction set
+
+    Raises:
+        FileNotFoundError: If the pickle file is not found
+    """
     base_path="/home/paperspace/Desktop/DL_Project/data/"
     df_file="full_prediction_set_fp_graphs.pickle"
     pred_set=pd.read_pickle(base_path+df_file)
@@ -64,7 +93,18 @@ def load_prediction_set() -> pd.DataFrame:
 
 
 def run_model(pred_set_df: pd.DataFrame, targets=['app', 'tau']):
-    """adfadf
+    """
+    Run the model on the prediction set.
+
+    Args:
+        pred_set_df (pd.DataFrame): DataFrame containing the prediction set
+        targets (list): List of targets to run the model on
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If the targets are not 'app' or 'tau'
     """
     base_path="/home/paperspace/Desktop/DL_Project/py_files/"
     # with the chosen parameters, create models for both tasks
@@ -77,10 +117,10 @@ def run_model(pred_set_df: pd.DataFrame, targets=['app', 'tau']):
 
         final_model = dc.models.GraphConvModel(n_tasks=1, mode='classification',
                                 graph_conv_layers=parameters["graph_conv_layers"],
-                                batchnorm=parameters['batchnorm'],
+                                batch_normalize=parameters['batch_normalize'],
                                 dropout=parameters['dropout'],
                                 dense_layer_size=parameters['dense_layer_size'],
-                                batchsize=parameters['batch_size'],
+                                batch_size=parameters['batch_size'],
                                 model_dir='model_model')
 
         # load best weights

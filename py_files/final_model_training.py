@@ -27,7 +27,13 @@ import errno
 
 def dc_metrics() -> list:
     '''
-    Deepchem classifier metrics to log throughout training
+    Deepchem classifier metrics to log throughout training.
+
+    Returns:
+        list - list of Deepchem classifier metrics
+
+    Raises:
+        ValueError: If the metrics are not 'roc_auc_score', 'accuracy_score', or 'balanced_accuracy_score'
     '''
     # metrics to log throughout training
     m1 = dc.metrics.Metric(dc.metrics.roc_auc_score)
@@ -40,6 +46,21 @@ def dc_metrics() -> list:
 def define_parameters(target: str) -> dict:
     """
     Return the model architectures determined after grid search based on the target.
+
+    Args:
+        target (str): The target of the model. Must be either 'tau' or 'app'.
+
+    Returns:
+        dict - dictionary containing the model parameters for the specified target
+            - 'graph_conv_layers' (list): List of integers specifying the number of graph convolution layers
+            - 'batch_normalize' (bool): Whether to use batch normalization
+            - 'dropout' (float): Dropout rate
+            - 'dense_layer_size' (list): List of integers specifying the number of neurons in each dense layer
+            - 'batch_size' (int): Batch size
+            - 'probability_threshold' (float): Threshold for classifying compounds as active
+
+    Raises:
+        ValueError: If the target is not 'tau' or 'app'
     """
     with open('/home/paperspace/Desktop/DL_Project/data/final_model_params.json', 'r') as f:
         model_params=json.load(f)
@@ -76,7 +97,7 @@ def define_random_parameters() -> dict:
     parameters['probability_threshold']=0.2
     parameters['batch_size']=random.choice(batch_size_options)
     parameters['graph_conv_layers']=random.choice(graph_conv_layers_options)
-    parameters['batchnorm']=random.choice(batchnorm_options)
+    parameters['batch_normalize']=random.choice(batchnorm_options)
     parameters['dropout']=random.choice(dropout_options)
     parameters['dense_layer_size']=random.choice(dense_layer_size_options)
     parameters['epochs']=random.choice(epoch_list)
@@ -98,6 +119,12 @@ def copy_weights(src: str, dst: str) -> None:
 def load_prediction_set() -> pd.DataFrame:
     """
     Load drugbank compounds from pickle file for predictions.
+
+    Returns:
+        pd.DataFrame - DataFrame containing the prediction set
+
+    Raises:
+        FileNotFoundError: If the pickle file is not found
     """
     base_path="/home/paperspace/Desktop/DL_Project/data/"
     df_file="full_prediction_set_fp_graphs.pickle"
@@ -110,7 +137,7 @@ def make_final_preds(model, target: str) -> None:
     """
     Generate final predictions using a trained model and save the results to an Excel file.
 
-    Parameters:
+    Args:
         model (object): The trained machine learning model for making predictions.
         target (str): The target variable for which predictions are being generated.
 
@@ -138,6 +165,17 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=True):
     """
     Pipeline to run through the process of loading data, defining model architectures,
     splitting, training, logging, and predicting.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing the training data
+        targets (list): List of targets to run the model on
+        save_images (bool): Whether to save the images of the performance plots
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If the targets are not 'app' or 'tau'
     """
     base_path="/home/paperspace/Desktop/DL_Project/py_files/"
     # with the chosen parameters, create models for both tasks
@@ -158,10 +196,10 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=True):
         # global model
         model = dc.models.GraphConvModel(n_tasks=1, mode='classification',
                                         graph_conv_layers=parameters["graph_conv_layers"],
-                                        batchnorm=parameters['batchnorm'],
+                                        batch_normalize=parameters['batch_normalize'],
                                         dropout=parameters['dropout'],
                                         dense_layer_size=parameters['dense_layer_size'],
-                                        batchsize=parameters['batch_size']
+                                        batch_size=parameters['batch_size']
                                         )                     
         # display model type
         model_evaluation.print_dictionary(all_data_dictionary['model_parameters'])
@@ -233,9 +271,7 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=True):
 
 
 if __name__=='__main__':
-    """
-    adfadf
-    """
+
     df = data_preparation.load_data(testing=False)
     print(df.head())
 

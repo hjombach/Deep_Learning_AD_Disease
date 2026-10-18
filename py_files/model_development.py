@@ -23,9 +23,15 @@ warnings.filterwarnings('ignore')
 
 
 def dc_metrics() -> list:
-    '''
-    adfdf
-    '''
+    """
+    Deepchem classifier metrics to log throughout training.
+
+    Returns:
+        list - list of Deepchem classifier metrics
+
+    Raises:
+        ValueError: If the metrics are not 'roc_auc_score', 'accuracy_score', or 'balanced_accuracy_score'
+    """
     # metrics to log throughout training
     m1 = dc.metrics.Metric(dc.metrics.roc_auc_score)
     m2 = dc.metrics.Metric(dc.metrics.accuracy_score)
@@ -39,7 +45,7 @@ def define_parameters() -> dict:
     Based on the specified choices, randomly select the parameters for the current model iteration.
     
     Returns:
-    dictionary with keys representing the parameter id and the values as the parameter
+        dictionary with keys representing the parameter id and the values as the parameter
     """
     graph_conv_layers_options = [
                                 [64, 64]
@@ -62,7 +68,7 @@ def define_parameters() -> dict:
     parameters['probability_threshold']=0.2
     parameters['batch_size']=random.choice(batch_size_options)
     parameters['graph_conv_layers']=random.choice(graph_conv_layers_options)
-    parameters['batchnorm']=random.choice(batchnorm_options)
+    parameters['batch_normalize']=random.choice(batchnorm_options)
     parameters['dropout']=random.choice(dropout_options)
     parameters['dense_layer_size']=random.choice(dense_layer_size_options)
     parameters['epochs']=random.choice(epoch_list)
@@ -71,7 +77,20 @@ def define_parameters() -> dict:
 
 
 def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
+    """ 
+    Run the model on the training data.
 
+    Args:
+        df (pd.DataFrame): DataFrame containing the training data
+        targets (list): List of targets to run the model on
+        save_images (bool): Whether to save the images of the performance plots
+
+    Returns:
+        None
+
+    Raises:
+        ValueError: If the targets are not 'app' or 'tau'
+    """
     parameters=define_parameters()
 
     # threshold for active classification
@@ -90,10 +109,10 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
         # global model
         model = dc.models.GraphConvModel(n_tasks=1, mode='classification',
                                         graph_conv_layers=parameters["graph_conv_layers"],
-                                        batchnorm=parameters['batchnorm'],
+                                        batch_normalize=parameters['batchnorm'],
                                         dropout=parameters['dropout'],
                                         dense_layer_size=parameters['dense_layer_size'],
-                                        batchsize=parameters['batch_size'])
+                                        batch_size=parameters['batch_size'])
         # display model type
         model_evaluation.print_dictionary(all_data_dictionary['model_parameters'])
 

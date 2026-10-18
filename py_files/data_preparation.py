@@ -6,7 +6,26 @@ import os
 import numpy as np
 import deepchem as dc
  
-def load_data(testing=False):
+def load_data(testing: bool=False):
+    """ 
+    Load the cleaned compound dataset and generate binary activity labels.
+
+    Loads either a sample dataset for testing or the full cleaned dataset
+    containing compound SMILES, assay results, fingerprints, and molecular
+    graph representations. Converts APP and Tau inhibitor activity outcomes
+    into binary labels and prints the number of active compounds for each
+    target.
+
+    Args:
+        testing (bool, optional): If True, loads a smaller sample dataset
+            for testing. Otherwise, loads the full dataset. Defaults to False.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the loaded compound data and two
+            additional binary label columns:
+            - 'app_label': 1 if the compound is active against APP, otherwise 0.
+            - 'tau_label': 1 if the compound is active against Tau, otherwise 0.
+    """
     base_path="/home/paperspace/Desktop/DL_Project"
     if testing:
         # print(os.getcwd())
@@ -24,9 +43,26 @@ def load_data(testing=False):
 
     return df
 
+
 def prepare_prediction_set(df_copy: pd.DataFrame):
     """
-    adsfaf
+    Prepare a dataset of molecular graph representations for model prediction.
+
+    Extracts graph representations from the input DataFrame and converts
+    them into a DeepChem NumpyDataset for use with a trained machine
+    learning model.
+
+    Args:
+        df_copy (pd.DataFrame): DataFrame containing molecular graph
+            representations in the 'dc_graph' column.
+
+    Returns:
+        dc.data.NumpyDataset: DeepChem dataset containing the molecular
+            graph representations, without labels, for prediction.
+
+    Notes:
+        - The function does not apply class balancing or split the dataset.
+        - The input DataFrame must contain a 'dc_graph' column.
     """
     X = np.array(df_copy['dc_graph'])
     # transform
@@ -35,8 +71,36 @@ def prepare_prediction_set(df_copy: pd.DataFrame):
     return dataset
 
 
-def prepare_data(df_copy: pd.DataFrame, target: str):
+def prepare_data(df_copy: pd.DataFrame, target: str, split: str = 'scaffold'):
     """
+    Prepare a target-specific dataset for graph-based machine learning.
+
+    Filters compounds to retain those tested against the specified target,
+    extracts graph representations and binary activity labels, applies
+    class-balancing weights, and splits the dataset into training,
+    validation, and test sets using the selected splitting strategy.
+
+    Args:
+        df_copy (pd.DataFrame): DataFrame containing compound graph
+            representations ('dc_graph'), target-specific inhibitor
+            indicators, and binary activity labels.
+        target (str): Name of the target of interest. Used to identify
+            the corresponding inhibitor and label columns.
+        split (str, optional): Dataset splitting strategy. Supported values:
+            - 'index': Split by dataset index.
+            - 'random stratified': Random stratified split.
+            - 'scaffold': Split based on molecular scaffolds.
+            Defaults to 'scaffold'.
+
+    Returns:
+        tuple: A tuple containing the training, validation, and test
+            DeepChem datasets, in that order.
+
+    Raises:
+        KeyError: If the specified target columns are missing or if an
+            unsupported split strategy is provided.
+        AssertionError: If the number of positive samples in the validation
+            and test sets differs by more than one.
     """
     task = f'{target}_inhibition'
 
@@ -61,7 +125,6 @@ def prepare_data(df_copy: pd.DataFrame, target: str):
     }
 
     # default 0.8, 0.1, 0.1 data split
-    split = 'random stratified'
     splitter = splitters[split]
     # split stratified to minimize
     train, valid, test = splitter.train_valid_test_split(dataset)
@@ -73,7 +136,23 @@ def prepare_data(df_copy: pd.DataFrame, target: str):
 
 def confirm_split(train, valid, test, target: str) -> None:
     """
+    Validate and report the distribution of positive samples across datasets.
 
+    Checks whether the number of positive samples in the training,
+    validation, and test datasets follows an expected 80/10/10 split.
+    Prints the total number of positive samples and the distribution
+    across the three datasets.
+
+    Args:
+        train: Training dataset containing binary labels in its `y` attribute.
+        valid: Validation dataset containing binary labels in its `y` attribute.
+        test: Test dataset containing binary labels in its `y` attribute.
+        target (str): Name of the target being evaluated, used in the
+            training distribution heading.
+
+    Returns:
+        None: Prints dataset distribution information and raises an
+            AssertionError if the expected positive sample counts do not match.
     """
     total_positives = sum(train.y) + sum(valid.y) + sum(test.y)
     expected_train_samples = int(total_positives * 0.8)
@@ -98,6 +177,27 @@ def confirm_split(train, valid, test, target: str) -> None:
 def create_model_dictionary(task: str, model_params: dict,
                             validation_labels: list) -> dict:
     """
+    Initialize a dictionary to store model parameters and evaluation results.
+
+    Organizes the specified task, model hyperparameters, and validation
+    labels into a structured dictionary. Initializes empty dictionaries
+    for storing general and best model results.
+
+    Args:
+        task (str): Name of the prediction task.
+        model_params (dict): Dictionary containing model hyperparameters,
+            including probability_threshold, graph_conv_layers, epochs,
+            batch_normalize, dropout, dense_layer_size, and batch_size.
+        validation_labels (list): True labels for the validation dataset,
+            used for model evaluation.
+
+    Returns:
+        dict: Dictionary containing three top-level keys:
+            - 'model_parameters': Task name, model hyperparameters, and
+              validation true labels.
+            - 'results': Empty dictionary for storing evaluation results.
+            - 'best_results': Empty dictionary for storing the best
+              evaluation results.
     """
     model_parameters= {
             'model_parameters': {
@@ -105,7 +205,7 @@ def create_model_dictionary(task: str, model_params: dict,
                 'probability_threshold': model_params["probability_threshold"],
                 'graph_conv_layers': model_params["graph_conv_layers"],
                 'epochs': model_params["epochs"],
-                'batch_norm': model_params['batchnorm'],
+                'batch_normalize': model_params['batch_normalize'],
                 'dropout': model_params['dropout'],
                 'dense_layer_size': model_params['dense_layer_size'],
                 'batch_size': model_params['batch_size'],
@@ -120,7 +220,34 @@ def create_model_dictionary(task: str, model_params: dict,
 
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
+    """
+    Custom JSON encoder for NumPy data types.
+
+    Extends json.JSONEncoder to support serialization of NumPy integers,
+    floating-point numbers, and arrays by converting them into native Python
+    types that are compatible with JSON serialization.
+
+    Methods:
+        default(obj): Converts supported NumPy objects into JSON-serializable
+            Python objects. Delegates unsupported types to the default
+            implementation of json.JSONEncoder, which raises a TypeError
+            if the object is not serializable.
+    """
     def default(self, obj):
+        """
+        Convert NumPy objects into JSON-serializable Python types.
+
+        Args:
+            obj: Object to serialize.
+
+        Returns:
+            int, float, or list: Converted value for NumPy integers,
+                floating-point numbers, or arrays, respectively.
+
+        Raises:
+            TypeError: If the object is not serializable by the default
+                JSON encoder.
+        """
         if isinstance(obj, np.integer):
             return int(obj)
         if isinstance(obj, np.floating):
