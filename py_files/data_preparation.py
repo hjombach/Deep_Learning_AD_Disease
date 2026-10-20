@@ -87,8 +87,8 @@ def generate_deepchem_graphs(df):
         for graph in graphs
     ])
 
-    print(f"Valid graphs: {graph_mask.sum()}")
-    print(f"Invalid graphs: {(~graph_mask).sum()}")
+    # print(f"Valid graphs: {graph_mask.sum()}")
+    # print(f"Invalid graphs: {(~graph_mask).sum()}")
 
     df = df.iloc[np.flatnonzero(graph_mask)].copy()
     df["dc_graph"] = graphs[graph_mask]

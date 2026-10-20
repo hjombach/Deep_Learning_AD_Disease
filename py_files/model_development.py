@@ -134,7 +134,7 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
 
                 all_metrics = model_evaluation.prediction_metrics(
                                                  all_metrics_dictionary = metrics, 
-                                                 data_set = f'validation_{target}', ### this is unclear what it should be
+                                                 data_set = 'validation', ### this is unclear what it should be
                                                  predictions = validation_preds,
                                                  true_labels = valid.y, 
                                                  probability_threshold = probability_threshold
@@ -144,14 +144,10 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
 
                 print(f'\nEpoch {i}\n------------------------')
                 # output results
-                model_evaluation.print_dictionary(all_metrics)
-
-                print(all_data_dictionary.keys())
-                print("iiiiii")
-                print(all_data_dictionary['results'][i].keys())
+                model_evaluation.print_dictionary(all_metrics['validation'])
 
             # if after 10 epochs we don't have any predictions as active, stop training the model and try new
-                if i > 10 and all_data_dictionary['results'][i]['num_predicted_hits'] == 0:
+                if i > 10 and all_data_dictionary['results'][i]['validation']['num_predicted_hits'] == 0:
                     print("Model training ended early due to lack of predictions")
                     all_data_dictionary = model_evaluation.find_best_results(all_data_dictionary)
                     model_folder=model_evaluation.save_metrics(all_data_dictionary, i)

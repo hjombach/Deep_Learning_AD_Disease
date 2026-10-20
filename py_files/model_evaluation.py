@@ -193,9 +193,9 @@ def prediction_metrics(all_metrics_dictionary: dict,
 
     overall_dictionary[data_set]={}
     overall_dictionary[data_set]=all_metrics_dictionary
-    return all_metrics_dictionary
+    # return all_metrics_dictionary
 
-    # return overall_dictionary
+    return overall_dictionary
 
 
 def find_best_results(all_data_dictionary: dict):
@@ -208,11 +208,11 @@ def find_best_results(all_data_dictionary: dict):
 
     for key, vals in all_data_dictionary['results'].items():
 
-        all_data_dictionary['best_results']['roc_auc_score'] = max([max_roc, vals['roc_auc_score']])
-        all_data_dictionary['best_results']['balanced_accuracy'] = max([max_balanced_acc, vals['balanced_accuracy_score']])
-        all_data_dictionary['best_results']['num_true_positives'] = max([max_true_pos, vals['num_true_positives']])
-        all_data_dictionary['best_results']['precision (TP/(TP + FP))'] = max([max_precision, vals['precision (TP/(TP + FP))']])
-        all_data_dictionary['best_results']['recall (TP/TP + FN))'] = max([max_recall, vals['recall (TP/TP + FN))']])
+        all_data_dictionary['best_results']['roc_auc_score'] = max([max_roc, vals['validation']['roc_auc_score']])
+        all_data_dictionary['best_results']['balanced_accuracy'] = max([max_balanced_acc, vals['validation']['balanced_accuracy_score']])
+        all_data_dictionary['best_results']['num_true_positives'] = max([max_true_pos, vals['validation']['num_true_positives']])
+        all_data_dictionary['best_results']['precision (TP/(TP + FP))'] = max([max_precision, vals['validation']['precision (TP/(TP + FP))']])
+        all_data_dictionary['best_results']['recall (TP/TP + FN))'] = max([max_recall, vals['validation']['recall (TP/TP + FN))']])
 
     print(f"\nBest Results Throughout Model Training:")
     print_dictionary(all_data_dictionary['best_results'])
@@ -233,7 +233,8 @@ def extract_numeric_performance(all_data_dictionary: dict) -> list:
     # data_to_plot['epochs']=epoch_numbers
 
     # then will pull out "validation" "test" dictionaries
-    for dataset in ['training', 'validation', 'test']:
+    # for dataset in ['training', 'validation', 'test']:
+    for dataset in ['validation']:
         data_to_plot = defaultdict(list)
         # data_to_plot['epochs']=epoch_numbers
         overall_data[dataset]={}
@@ -264,10 +265,15 @@ def plot_performance(all_data_dictionary: dict, save_image=False, save_location=
 
     title_size=12
     label_size=10
-    fig, ax = plt.subplots(3, 4, figsize = (16, 8), tight_layout = True, sharey=False)
+    fig, ax = plt.subplots(3, 4, figsize = (16, 8), tight_layout = True, sharey=False, squeeze=False)
     plt.setp(ax, xlabel='Epochs')
     
-    for data_set, row in zip(['training', 'validation', 'test'], [0, 1, 2]):
+    # for data_set, row in zip(['training', 'validation', 'test'], [0, 1, 2]):
+
+    sources = list(next(iter(all_data_dictionary['results'].values())).keys())
+
+    for row, data_set in enumerate(sources):
+
         epochs=data_to_plot['epochs']
         true_hit_num=all_data_dictionary['results'][epochs[0]][data_set][f'num_true_hits']
         ax[row][0].plot(epochs, data_to_plot[data_set][f'loss_vals'], label = 'cross entropy loss')
