@@ -8,7 +8,7 @@
             64,
             64
         ],
-        "batchnorm": "False",
+        "batch_normalize": false,
         "dropout": 0,
         "dense_layer_size": 256,
         "epochs": 150
@@ -21,7 +21,7 @@
             128,
             64
         ],
-        "batchnorm": "True",
+        "batch_normalize": true,
         "dropout": 0,
         "dense_layer_size": 128,
         "epochs": 150

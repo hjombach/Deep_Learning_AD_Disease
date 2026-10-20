@@ -1,11 +1,17 @@
 import pickle
 import pandas as pd
 from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedGroupKFold
 import json
 import os
 import numpy as np
 import deepchem as dc
- 
+from rdkit import RDLogger
+from rdkit import Chem
+
+RDLogger.DisableLog("rdApp.*")
+
+
 def load_data(testing: bool=False):
     """ 
     Load the cleaned compound dataset and generate binary activity labels.
@@ -26,12 +32,15 @@ def load_data(testing: bool=False):
             - 'app_label': 1 if the compound is active against APP, otherwise 0.
             - 'tau_label': 1 if the compound is active against Tau, otherwise 0.
     """
-    base_path="/home/paperspace/Desktop/DL_Project"
+#    /data/final_data/training_data_both_assays_no_graph.parquet
+    base_path = "/home/paperspace/Deep_Learning_AD_Disease"
     if testing:
         # print(os.getcwd())
-        df = pd.read_pickle(f'{base_path}/data/sample.pickle')
-    else:
-        df = pd.read_pickle(f'{base_path}/data/cleaned_smiles_both_assays_pubchem_fp_graphs_2023Dec24.pickle')
+        # df = pd.read_pickle(f'{base_path}/data/sample.pickle')
+        df = pd.read_parquet(f'{base_path}/data/final_data/training_data_both_assays_no_graph.parquet').head(10000)
+    else: 
+        # df = pd.read_pickle(f'{base_path}/data/cleaned_smiles_both_assays_pubchem_fp_graphs_2023Dec24.pickle')
+        df = pd.read_parquet(f'{base_path}/data/final_data/training_data_both_assays_no_graph.parquet')
     # Create Binary Labels from Text Labels
     df['app_label'] = (df["app_inhibitor"] == 'Active').astype(int)
     df['tau_label'] = (df["tau_inhibitor"] == 'Active').astype(int)
@@ -41,8 +50,50 @@ def load_data(testing: bool=False):
     print(f"{df['tau_label'].sum():,} compounds inhibit Tau")
     # display(df.head(3))
 
+    df = generate_deepchem_graphs(df)
+
+    # df = df[['inchikey', 'dc_graph', 'app_label', 'tau_label']]
+    df = df.set_index("inchikey")
+
     return df
 
+
+def generate_deepchem_graphs(df):
+    df = df.copy()
+
+    # Parse SMILES and identify invalid molecules
+    mols = df["canonical_tautomer_smiles"].apply(
+        lambda s: Chem.MolFromSmiles(s) if isinstance(s, str) else None
+    )
+
+    valid_mask = mols.notna()
+
+    print(f"Total compounds: {len(df)}")
+    print(f"Invalid SMILES: {(~valid_mask).sum()}")
+
+    # Keep only valid molecules
+    df = df.loc[valid_mask].copy()
+    valid_mols = mols.loc[valid_mask].tolist()
+
+    # Featurize valid molecules
+    featurizer = dc.feat.ConvMolFeaturizer(
+        per_atom_fragmentation=False
+    )
+    graphs = featurizer.featurize(valid_mols)
+
+    # Confirm every graph is a ConvMol
+    graph_mask = np.array([
+        isinstance(graph, dc.feat.mol_graphs.ConvMol)
+        for graph in graphs
+    ])
+
+    print(f"Valid graphs: {graph_mask.sum()}")
+    print(f"Invalid graphs: {(~graph_mask).sum()}")
+
+    df = df.iloc[np.flatnonzero(graph_mask)].copy()
+    df["dc_graph"] = graphs[graph_mask]
+
+    return df
 
 def prepare_prediction_set(df_copy: pd.DataFrame):
     """
@@ -105,31 +156,54 @@ def prepare_data(df_copy: pd.DataFrame, target: str, split: str = 'scaffold'):
     task = f'{target}_inhibition'
 
     # filter compounds not tested on the target of interest
-    df = df_copy[~df_copy[f'{target}_inhibitor'].isnull()]
+    df = df_copy[~df_copy[f'{target}_label'].isnull()]
 
     X = np.array(df['dc_graph'])
     y = np.array(df[f"{target}_label"])
 
     # transform
     dataset = dc.data.NumpyDataset(X = X, y = y)
+
+    # print("Dataset X dtype:", dataset.X.dtype)
+    # print("Dataset first item:", type(dataset.X[0]))
+    # print("Expected ConvMol:", isinstance(
+    #     dataset.X[0], dc.feat.mol_graphs.ConvMol
+    # ))
     # take into account imbalance - assigns weights of both classes
     # to be equivalent, even though class labels are very imbalanced
     transformer = dc.trans.BalancingTransformer(dataset = dataset)
     dataset = transformer.transform(dataset)
 
-    # split the data to be in equal proportions through sets
-    splitters = {
-                'index': dc.splits.IndexSplitter(),
-                'random stratified': dc.splits.RandomStratifiedSplitter(),
-                'scaffold': dc.splits.ScaffoldSplitter(),
-    }
 
-    # default 0.8, 0.1, 0.1 data split
-    splitter = splitters[split]
+    if split in ['index', 'random_stratified']:
+        # split the data to be in equal proportions through sets
+        splitters = {
+                    'index': dc.splits.IndexSplitter(),
+                    'random stratified': dc.splits.RandomStratifiedSplitter(),
+                    'scaffold': dc.splits.ScaffoldSplitter(),
+        }
+
+        # default 0.8, 0.1, 0.1 data split
+        splitter = splitters[split]
     # split stratified to minimize
-    train, valid, test = splitter.train_valid_test_split(dataset)
+        train, valid, test = splitter.train_valid_test_split(dataset)
+
+    elif split == 'scaffold':
+        sgkf = StratifiedGroupKFold(n_splits=10, shuffle = True, random_state=42)
+        folds = [idx for _, idx in sgkf.split(np.zeros(len(y)), y, groups = df['bm_scaffold'])]
+        test_idx, valid_idx = folds[0], folds[1]
+        train_idx = np.concatenate(folds[2:])
+        train, valid, test = dataset.select(train_idx), dataset.select(valid_idx), dataset.select(test_idx)
+
+    else:
+        print("invalid selection")
+
     # make sure the validation and test sets are eqiuvalent (plus or minus 1)
-    assert valid.y.sum()-1 <= test.y.sum() <= valid.y.sum()+1
+    # assert valid.y.sum()-1 <= test.y.sum() <= valid.y.sum()+1
+    print("DISTRIBUTION of HITS")
+    print(f"Train: {train.y.sum()}")
+    print(f"Validation: {valid.y.sum()}")
+    print(f"Test: {test.y.sum()}")
 
     return train, valid, test
 

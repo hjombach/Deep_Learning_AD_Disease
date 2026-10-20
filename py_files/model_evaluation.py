@@ -12,6 +12,7 @@ import time
 from pytz import timezone
 import deepchem as dc
 
+
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -60,7 +61,7 @@ def log_interim_results(dictionary_to_print: dict, target: str, epoch: int) -> N
             file.write(f"{dataset} metrics\n")
             # for "validation" then "test"
             for key, value in dictionary_to_print[dataset].items():
-
+                print("key: " + key)
                 if (key == 'validation_true_labels' or key == 'predictions'):
                     continue
                 if (isinstance(value, np.floating) or type(value)==float):
@@ -89,7 +90,7 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
     layers=all_data_dictionary['model_parameters']['graph_conv_layers']
     dropout=all_data_dictionary['model_parameters']['dropout']
     epochs=all_data_dictionary['model_parameters']['epochs']
-    batch_norm=all_data_dictionary['model_parameters']['batch_norm']
+    batch_norm=all_data_dictionary['model_parameters']['batch_normalize']
     dense_layer_size=all_data_dictionary['model_parameters']['dense_layer_size']
     batch_size=all_data_dictionary['model_parameters']['batch_size']
 
@@ -102,7 +103,9 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
         variable= strings_for_name[i]
         full_name+=str(variable)+"_"
 
-    base_path="/home/paperspace/Desktop/DL_Project"
+    # base_path="/home/paperspace/Desktop/DL_Project"
+    # base_path=""
+    base_path="/home/paperspace/Deep_Learning_AD_Disease"
     full_directory=f"{base_path}/model_results/" + full_name + "results"
 
     if not os.path.exists(full_directory):
@@ -190,8 +193,9 @@ def prediction_metrics(all_metrics_dictionary: dict,
 
     overall_dictionary[data_set]={}
     overall_dictionary[data_set]=all_metrics_dictionary
+    return all_metrics_dictionary
 
-    return overall_dictionary
+    # return overall_dictionary
 
 
 def find_best_results(all_data_dictionary: dict):

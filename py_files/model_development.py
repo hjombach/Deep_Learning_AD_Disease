@@ -21,6 +21,11 @@ import json
 import warnings
 warnings.filterwarnings('ignore')
 
+from rdkit import RDLogger
+
+RDLogger.DisableLog("rdApp.*")
+
+
 
 def dc_metrics() -> list:
     """
@@ -48,9 +53,9 @@ def define_parameters() -> dict:
         dictionary with keys representing the parameter id and the values as the parameter
     """
     graph_conv_layers_options = [
-                                [64, 64]
+                                [64, 64],
                                 # [64, 64, 64, 64],
-                                # [64, 128, 64],
+                                [64, 128, 64],
                                 [64, 128, 256, 384, 256, 128, 64],
                                 # [64, 128, 256, 256, 128, 64]
                                 ]
@@ -61,7 +66,7 @@ def define_parameters() -> dict:
     # dense_layer_size_options=[128]
     batch_size_options = [500]
     # epoch_list = [150]
-    epoch_list=[50]
+    epoch_list=[10, 15, 20]
 
     parameters={}
 
@@ -109,7 +114,7 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
         # global model
         model = dc.models.GraphConvModel(n_tasks=1, mode='classification',
                                         graph_conv_layers=parameters["graph_conv_layers"],
-                                        batch_normalize=parameters['batchnorm'],
+                                        batch_normalize=parameters['batch_normalize'],
                                         dropout=parameters['dropout'],
                                         dense_layer_size=parameters['dense_layer_size'],
                                         batch_size=parameters['batch_size'])
@@ -127,14 +132,23 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
                 metrics = model.evaluate(valid, metrics=dc_metrics())
                 metrics['log_loss'] = log_loss(valid.y, [i[0] for i in validation_preds])
 
-                all_metrics = model_evaluation.prediction_metrics(metrics, validation_preds,
-                                                 valid.y, probability_threshold)
+                all_metrics = model_evaluation.prediction_metrics(
+                                                 all_metrics_dictionary = metrics, 
+                                                 data_set = f'validation_{target}', ### this is unclear what it should be
+                                                 predictions = validation_preds,
+                                                 true_labels = valid.y, 
+                                                 probability_threshold = probability_threshold
+                                                 )
                 # store performance results
                 all_data_dictionary["results"][i] = all_metrics
 
                 print(f'\nEpoch {i}\n------------------------')
                 # output results
                 model_evaluation.print_dictionary(all_metrics)
+
+                print(all_data_dictionary.keys())
+                print("iiiiii")
+                print(all_data_dictionary['results'][i].keys())
 
             # if after 10 epochs we don't have any predictions as active, stop training the model and try new
                 if i > 10 and all_data_dictionary['results'][i]['num_predicted_hits'] == 0:
@@ -154,12 +168,11 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
 
 
 
-# if __name__=='__main__':
-#     df = data_preparation.load_data(testing=True)
-#     print(df.head())
+if __name__=='__main__':
+    df = data_preparation.load_data(testing=True)
 
-#     ## each test performed for app and tau
-#     number_tests=1
-#     for i in range(number_tests):
-#         run_model(df, targets=['app'], save_images=True)
-#         # run_model(df, save_images=True)
+    ## each test performed for app and tau
+    number_tests=5
+    for i in range(number_tests):
+        run_model(df, targets=['app'], save_images=True)
+        # run_model(df, save_images=True)
