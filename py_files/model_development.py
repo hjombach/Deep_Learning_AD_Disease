@@ -1,24 +1,15 @@
 from datetime import datetime
 from functools import partial
-import json
-import os
-import pickle
 import random
-import time
 import warnings
 
 import deepchem as dc
 from deepchem import models
 from deepchem.models import GraphConvModel
-import matplotlib.pyplot as plt
-from matplotlib import ticker
 import numpy as np
-from openpyxl import Workbook
 import pandas as pd
-from pytz import timezone
 from rdkit import RDLogger
 from sklearn.metrics import log_loss
-import torch
 
 import data_preparation
 import model_evaluation
@@ -66,8 +57,8 @@ def define_parameters() -> dict:
     dense_layer_size_options = [128, 256]
     # dense_layer_size_options=[128]
     batch_size_options = [500]
-    # epoch_list = [150]
-    epoch_list=[10, 15, 20]
+    # epoch_list = [10]
+    epoch_list=[40, 50, 60]
 
     parameters={}
 
@@ -151,7 +142,6 @@ def run_model(df: pd.DataFrame,
                                                     probability_threshold = probability_threshold
                                                     )
 
-                    # all_metrics[data_set] = {}
                     all_metrics[data_set] = all_metrics_subset.copy()
                     # store performance results
                     all_data_dictionary["results"][i] = all_metrics
@@ -176,7 +166,7 @@ if __name__=='__main__':
     df = data_preparation.load_data(testing=TESTING)
 
     ## each test performed for app and tau
-    number_tests=4
+    number_tests=5
     for i in range(number_tests):
         # run_model(df, targets=['app'], save_images=True, testing=TESTING)
         run_model(df, save_images=True, testing=TESTING)

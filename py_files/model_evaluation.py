@@ -2,17 +2,13 @@ from collections import defaultdict
 from datetime import datetime
 import json
 import os
-import pickle
-import time
 
-import deepchem as dc
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import numpy as np
 from openpyxl import Workbook
 import pandas as pd
 from pytz import timezone
-from sklearn.metrics import accuracy_score
 
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
@@ -130,8 +126,6 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None, testing: bool = Fa
     s1 = now.strftime("%m_%d_%Y-%H_%M")
 
     all_data_dictionary.copy()
-    # data_to_save = data_to_save.pop('validation_true_labels')
-    
 
     # class to overrride Encoder needed to dump dictionary
     json_str = json.dumps(all_data_dictionary, cls=NpEncoder)
@@ -349,10 +343,7 @@ def extract_numeric_performance(all_data_dictionary: dict) -> list:
     epoch_numbers=epochs
     overall_data={}
     overall_data['epochs']=epoch_numbers
-    # data_to_plot = defaultdict(list)
-    # data_to_plot['epochs']=epoch_numbers
 
-    # then will pull out "validation" "test" dictionaries
     # for dataset in ['training', 'validation', 'test']:
     for dataset in ['training', 'validation']:
         data_to_plot = defaultdict(list)
@@ -451,4 +442,73 @@ def plot_performance(all_data_dictionary: dict, save_image=False, save_location=
     if save_image:
         plt.savefig(f"{save_location}/{s1}_{task}_model_performance.png")
 
-    # plt.show()
+
+    plot_prediction_distributions(all_data_dictionary=all_data_dictionary, save_location  = save_location)
+
+
+def plot_prediction_distributions(all_data_dictionary: dict, save_location) -> None:
+
+    
+    true_vals = all_data_dictionary['model_parameters']['validation_true_labels']
+    model_results = all_data_dictionary['results']
+
+    preds_over_epochs = pd.DataFrame({
+        'true_labels': np.asarray(true_vals).reshape(-1)
+    })
+
+    for epoch, values in model_results.items():
+        epoch_active_preds = [
+            i[0][1] for i in values['validation']['predictions']
+        ]
+        preds_over_epochs[str(epoch)] = epoch_active_preds
+
+    # One subplot per epoch
+    epochs = list(model_results.keys())
+    n_epochs = len(epochs)
+    ncols = 3
+    nrows = int(np.ceil(n_epochs / ncols))
+
+    fig, axes = plt.subplots(
+        nrows, ncols,
+        figsize=(5 * ncols, 4 * nrows),
+        sharex=True,
+        sharey=True,
+        squeeze=False
+    )
+
+    bins = np.linspace(0, 1, 21)
+
+    for i, epoch in enumerate(epochs):
+        ax = axes.flat[i]
+        pred_col = str(epoch)
+
+        for label, name, color in [
+            (0, 'True negative (label 0)', 'steelblue'),
+            (1, 'True positive (label 1)', 'darkorange')
+        ]:
+            predictions = preds_over_epochs.loc[
+                preds_over_epochs['true_labels'] == label,
+                pred_col
+            ].dropna()
+
+            ax.hist(
+                predictions,
+                bins=bins,
+                density=True,
+                alpha=0.5,
+                color=color,
+                label=f'{name} (n={len(predictions)})'
+            )
+
+        ax.set_title(f'Epoch {epoch}')
+        ax.set_xlabel('Predicted probability of activity')
+        ax.set_ylabel('Normalized density')
+        ax.set_xlim(0, 1)
+        ax.legend(fontsize=8)
+
+    # Hide unused subplot slots
+    for j in range(n_epochs, nrows * ncols):
+        axes.flat[j].set_visible(False)
+
+    plt.savefig(f"{save_location}/model_histograms.png")
+    plt.show()

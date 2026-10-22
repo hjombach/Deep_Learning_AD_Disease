@@ -1,13 +1,10 @@
 import json
-import os
-import pickle
 
 import deepchem as dc
 import numpy as np
 import pandas as pd
 from rdkit import Chem
 from rdkit import RDLogger
-from sklearn.metrics import accuracy_score
 from sklearn.model_selection import StratifiedGroupKFold
 
 RDLogger.DisableLog("rdApp.*")
@@ -33,14 +30,12 @@ def load_data(testing: bool=False):
             - 'app_label': 1 if the compound is active against APP, otherwise 0.
             - 'tau_label': 1 if the compound is active against Tau, otherwise 0.
     """
-#    /data/final_data/training_data_both_assays_no_graph.parquet
+
     base_path = "/home/paperspace/Deep_Learning_AD_Disease"
     if testing:
         # print(os.getcwd())
-        # df = pd.read_pickle(f'{base_path}/data/sample.pickle')
         df = pd.read_parquet(f'{base_path}/data/final_data/training_data_both_assays_no_graph.parquet').head(10000)
     else: 
-        # df = pd.read_pickle(f'{base_path}/data/cleaned_smiles_both_assays_pubchem_fp_graphs_2023Dec24.pickle')
         df = pd.read_parquet(f'{base_path}/data/final_data/training_data_both_assays_no_graph.parquet')
     # Create Binary Labels from Text Labels
     df['app_label'] = (df["app_inhibitor"] == 'Active').astype(int)
@@ -67,8 +62,8 @@ def generate_deepchem_graphs(df):
 
     valid_mask = mols.notna()
 
-    print(f"Total compounds: {len(df)}")
-    print(f"Invalid SMILES: {(~valid_mask).sum()}")
+    print(f"\nTotal compounds: {len(df):,}")
+    print(f"Invalid SMILES: {(~valid_mask).sum()}\n")
 
     # Keep only valid molecules
     df = df.loc[valid_mask].copy()
@@ -160,16 +155,10 @@ def prepare_data(df_copy: pd.DataFrame, target: str, split: str = 'scaffold'):
     # transform
     dataset = dc.data.NumpyDataset(X = X, y = y)
 
-    # print("Dataset X dtype:", dataset.X.dtype)
-    # print("Dataset first item:", type(dataset.X[0]))
-    # print("Expected ConvMol:", isinstance(
-    #     dataset.X[0], dc.feat.mol_graphs.ConvMol
-    # ))
     # take into account imbalance - assigns weights of both classes
     # to be equivalent, even though class labels are very imbalanced
     transformer = dc.trans.BalancingTransformer(dataset = dataset)
     dataset = transformer.transform(dataset)
-
 
     if split in ['index', 'random_stratified']:
         # split the data to be in equal proportions through sets
@@ -199,7 +188,7 @@ def prepare_data(df_copy: pd.DataFrame, target: str, split: str = 'scaffold'):
     print("DISTRIBUTION of HITS")
     print(f"Train: {train.y.sum()}")
     print(f"Validation: {valid.y.sum()}")
-    print(f"Test: {test.y.sum()}")
+    print(f"Test: {test.y.sum()}\n")
 
     return train, valid, test
 
