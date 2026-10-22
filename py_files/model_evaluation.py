@@ -1,17 +1,18 @@
-import pickle
-import pandas as pd
-from sklearn.metrics import accuracy_score
-import json
 from collections import defaultdict
+from datetime import datetime
+import json
+import os
+import pickle
+import time
+
+import deepchem as dc
 import matplotlib.pyplot as plt
 from matplotlib import ticker
 import numpy as np
-from datetime import datetime
-import os
-import time
-from pytz import timezone
-import deepchem as dc
 from openpyxl import Workbook
+import pandas as pd
+from pytz import timezone
+from sklearn.metrics import accuracy_score
 
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
@@ -105,7 +106,7 @@ def log_interim_results(dictionary_to_print: dict, target: str, epoch: int) -> N
 
 
 
-def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
+def save_metrics(all_data_dictionary: dict, epochs_cut= None, testing: bool = False) -> None:
     """
     Persist a full training run's metrics and parameters to disk.
 
@@ -128,6 +129,10 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
     # mm/dd/YY H:M:S format
     s1 = now.strftime("%m_%d_%Y-%H_%M")
 
+    all_data_dictionary.copy()
+    # data_to_save = data_to_save.pop('validation_true_labels')
+    
+
     # class to overrride Encoder needed to dump dictionary
     json_str = json.dumps(all_data_dictionary, cls=NpEncoder)
 
@@ -142,7 +147,7 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
     batch_size=all_data_dictionary['model_parameters']['batch_size']
 
     strings_for_name=[s1, target, layers, dropout,
-                      batch_norm, dense_layer_size, batch_size, epochs]
+                      batch_norm, dense_layer_size, batch_size, epochs, str(testing)]
 
     full_name=""
     for i in range(len(strings_for_name)):
@@ -165,13 +170,13 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None) -> None:
     f.write(json_str)
     f.close()
 
-    record_best_results(all_data_dictionary, s1, file_name, epochs_cut)
+    record_best_results(all_data_dictionary, s1, file_name, epochs_cut, testing=testing)
 
     return full_directory
 
 
 def record_best_results(all_data_dictionary: dict, model_time: str,
-                        filename: str, epochs_cut=None) -> None:
+                        filename: str, epochs_cut=None, testing: bool=False) -> None:
     """
     Append model parameters and best metrics to the summary Excel workbook.
 
@@ -203,6 +208,11 @@ def record_best_results(all_data_dictionary: dict, model_time: str,
     data_to_store.update(all_data_dictionary['best_results'])
     data_to_store['run_date']=model_time
     data_to_store['results_file']=filename
+    try:
+        data_to_store.pop("validation_true_labels")
+    except:
+        print('validation true labels not in dictionary')
+    data_to_store['testing'] = str(testing)
 
     if epochs_cut is not None:
         data_to_store['epochs_run']=epochs_cut

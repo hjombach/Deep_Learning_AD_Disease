@@ -1,13 +1,14 @@
-import pickle
-import pandas as pd
-from sklearn.metrics import accuracy_score
-from sklearn.model_selection import StratifiedGroupKFold
 import json
 import os
-import numpy as np
+import pickle
+
 import deepchem as dc
-from rdkit import RDLogger
+import numpy as np
+import pandas as pd
 from rdkit import Chem
+from rdkit import RDLogger
+from sklearn.metrics import accuracy_score
+from sklearn.model_selection import StratifiedGroupKFold
 
 RDLogger.DisableLog("rdApp.*")
 

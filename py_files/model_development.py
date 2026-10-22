@@ -1,28 +1,29 @@
-import data_preparation
-import model_evaluation
+from datetime import datetime
+from functools import partial
+import json
+import os
+import pickle
+import random
+import time
+import warnings
+
 import deepchem as dc
 from deepchem import models
 from deepchem.models import GraphConvModel
 import matplotlib.pyplot as plt
 from matplotlib import ticker
-from openpyxl import Workbook
-from functools import partial
-import os
-import pandas as pd
-import pickle
 import numpy as np
-from datetime import datetime
-import torch
-import time
+from openpyxl import Workbook
+import pandas as pd
 from pytz import timezone
-import random
-from sklearn.metrics import log_loss
-import json
-import warnings
-warnings.filterwarnings('ignore')
-
 from rdkit import RDLogger
+from sklearn.metrics import log_loss
+import torch
 
+import data_preparation
+import model_evaluation
+
+warnings.filterwarnings('ignore')
 RDLogger.DisableLog("rdApp.*")
 
 
@@ -81,7 +82,10 @@ def define_parameters() -> dict:
     return parameters
 
 
-def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
+def run_model(df: pd.DataFrame, 
+                targets=['app', 'tau'], 
+                save_images: bool =False, 
+                testing : bool = False):
     """ 
     Run the model on the training data.
 
@@ -89,6 +93,7 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
         df (pd.DataFrame): DataFrame containing the training data
         targets (list): List of targets to run the model on
         save_images (bool): Whether to save the images of the performance plots
+        testing (bool): Whether the model being run on a sample of data
 
     Returns:
         None
@@ -133,9 +138,6 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
                 # for data_set, data_points in enumerate([('training', train), ('validation', valid)]):
                 for data_set, data_points in {'training': train,
                                               'validation': valid}.items():
-                    # print(type(train))
-                    # print(type(valid))
-
 
                     preds = model.predict(data_points)
                     metrics = model.evaluate(data_points, metrics=dc_metrics())
@@ -161,7 +163,7 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
         # add elements to dictionary with highest scores for metrics
         all_data_dictionary = model_evaluation.find_best_results(all_data_dictionary)
         # save results to external files
-        model_folder=model_evaluation.save_metrics(all_data_dictionary)
+        model_folder=model_evaluation.save_metrics(all_data_dictionary, testing = testing)
          # plots and saves
         model_evaluation.plot_performance(all_data_dictionary, save_image=save_images, save_location=model_folder)
         # return all_data_dictionary
@@ -169,10 +171,12 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
 
 
 if __name__=='__main__':
-    df = data_preparation.load_data(testing=True)
+
+    TESTING = False
+    df = data_preparation.load_data(testing=TESTING)
 
     ## each test performed for app and tau
-    number_tests=2
+    number_tests=4
     for i in range(number_tests):
-        # run_model(df, targets=['app'], save_images=True)
-        run_model(df, save_images=True)
+        # run_model(df, targets=['app'], save_images=True, testing=TESTING)
+        run_model(df, save_images=True, testing=TESTING)
