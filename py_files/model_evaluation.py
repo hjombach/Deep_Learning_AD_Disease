@@ -1,14 +1,15 @@
-from collections import defaultdict
-from datetime import datetime
 import json
 import os
+from collections import defaultdict
+from datetime import datetime
 
 import matplotlib.pyplot as plt
-from matplotlib import ticker
 import numpy as np
-from openpyxl import Workbook
 import pandas as pd
+from matplotlib import ticker
+from openpyxl import Workbook
 from pytz import timezone
+
 
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
@@ -87,7 +88,7 @@ def log_interim_results(dictionary_to_print: dict, target: str, epoch: int) -> N
         file.write(f"\nEpoch {epoch} - {target} Evaluation - {s1}\n")
         file.write("------------------------------------\n")
 
-        for dataset in dictionary_to_print.keys():
+        for dataset in dictionary_to_print:
             file.write(f"{dataset} metrics\n")
             # for "validation" then "test"
             for key, value in dictionary_to_print[dataset].items():
@@ -270,17 +271,18 @@ def prediction_metrics(all_metrics_dictionary: dict,
     # all_metrics_dictionary[data_set]={}
 
     # data_set_dict={}
-    all_metrics_dictionary[f'num_predicted_hits'] = num_predicted_hits
-    all_metrics_dictionary[f'num_true_hits'] = num_true_hits # doesn't change (objective to task)
+    all_metrics_dictionary['num_predicted_hits'] = num_predicted_hits
+    all_metrics_dictionary['num_true_hits'] = num_true_hits # doesn't change (objective to task)
     # all_metrics_dictionary['accuracy'] = accuracy
-    all_metrics_dictionary[f'num_true_positives'] = num_true_positives
-    all_metrics_dictionary[f'num_false_positives'] = num_false_positives
-    all_metrics_dictionary[f'precision'] = precision
-    all_metrics_dictionary[f'recall'] = recall
-    all_metrics_dictionary[f'predictions']=predictions
+    all_metrics_dictionary['num_true_positives'] = num_true_positives
+    all_metrics_dictionary['num_false_positives'] = num_false_positives
+    all_metrics_dictionary['precision'] = precision
+    all_metrics_dictionary['recall'] = recall
+    all_metrics_dictionary['predictions']=predictions
 
     overall_dictionary[data_set]={}
     overall_dictionary[data_set]=all_metrics_dictionary
+    
     return all_metrics_dictionary
 
     # return overall_dictionary
@@ -315,7 +317,7 @@ def find_best_results(all_data_dictionary: dict):
         all_data_dictionary['best_results']['recall'] = max([max_recall, vals['validation']['recall']])
         all_data_dictionary['best_results']['log_loss'] = min([min_log_loss, vals['validation']['log_loss']])
 
-    print(f"\nBest Results Throughout Model Training:")
+    print("\nBest Results Throughout Model Training:")
     print_dictionary(all_data_dictionary['best_results'])
 
     return all_data_dictionary
@@ -395,37 +397,37 @@ def plot_performance(all_data_dictionary: dict, save_image=False, save_location=
     for row, data_set in enumerate(sources):
 
         epochs=data_to_plot['epochs']
-        true_hit_num=all_data_dictionary['results'][epochs[0]][data_set][f'num_true_hits']
-        ax[row][0].plot(epochs, data_to_plot[data_set][f'loss_vals'], label = 'cross entropy loss')
+        true_hit_num=all_data_dictionary['results'][epochs[0]][data_set]['num_true_hits']
+        ax[row][0].plot(epochs, data_to_plot[data_set]['loss_vals'], label = 'cross entropy loss')
         ax[row][0].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax[row][0].legend()
         ax[row][0].set_ylim([0, 1])
         ax[row][0].set_ylabel("Cross Entropy Loss", size=label_size)
         ax[row][0].set_title(f"{data_set.title()} Set Cross Entropy Loss", size=title_size)
 
-        ax[row][1].plot(epochs, data_to_plot[data_set][f'recall_vals'], label = 'recall')
-        ax[row][1].plot(epochs, data_to_plot[data_set][f'precision_vals'], label = 'precision')
+        ax[row][1].plot(epochs, data_to_plot[data_set]['recall_vals'], label = 'recall')
+        ax[row][1].plot(epochs, data_to_plot[data_set]['precision_vals'], label = 'precision')
         ax[row][1].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax[row][1].set_ylim([0, 1])
         ax[row][1].set_ylabel("Metric Performance")
         ax[row][1].set_title(f"{data_set.title()} Set Precision and Recall", size=title_size)
         ax[row][1].legend()
 
-        ax[row][2].plot(epochs, data_to_plot[data_set][f'roc_auc_vals'], label = 'roc_auc')
+        ax[row][2].plot(epochs, data_to_plot[data_set]['roc_auc_vals'], label = 'roc_auc')
         ax[row][2].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax[row][2].set_ylim([0, 1])
         ax[row][2].set_ylabel("Metric Performance", size=label_size)
         ax[row][2].set_title(f"{data_set.title()} Set ROC AUC Values", size=title_size)
         ax[row][2].legend()
 
-        ax[row][3].bar(epochs, data_to_plot[data_set][f'true_positive_list'], label = 'correctly predicted hits')
+        ax[row][3].bar(epochs, data_to_plot[data_set]['true_positive_list'], label = 'correctly predicted hits')
         ax[row][3].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax[row][3].axhline(y = true_hit_num, color = 'green', linestyle = 'dashed', label = "True Number of Hits", alpha=0.5)
         ax[row][3].set_ylabel("Compound Count", size=label_size)
         ax[row][3].set_title(f"{data_set.title()} Set - True Positives Identification", size=title_size)
         ax[row][3].legend()
 
-        ax[row][4].bar(epochs, data_to_plot[data_set][f'num_predicted_hits'], label='predicted hits')
+        ax[row][4].bar(epochs, data_to_plot[data_set]['num_predicted_hits'], label='predicted hits')
         ax[row][4].xaxis.set_major_locator(ticker.MaxNLocator(integer=True))
         ax[row][4].set_ylabel("Metric Performance", size=label_size)
         ax[row][4].set_title(f"{data_set.title()} Set - Prediction Activity", size=title_size)

@@ -35,3 +35,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 package-mode = false
+
+[dependency-groups]
+dev = [
+    "ruff (>=0.17.2,<0.18.0)"
+]

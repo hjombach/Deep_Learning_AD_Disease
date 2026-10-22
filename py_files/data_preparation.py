@@ -3,8 +3,7 @@ import json
 import deepchem as dc
 import numpy as np
 import pandas as pd
-from rdkit import Chem
-from rdkit import RDLogger
+from rdkit import Chem, RDLogger
 from sklearn.model_selection import StratifiedGroupKFold
 
 RDLogger.DisableLog("rdApp.*")
@@ -144,7 +143,6 @@ def prepare_data(df_copy: pd.DataFrame, target: str, split: str = 'scaffold'):
         AssertionError: If the number of positive samples in the validation
             and test sets differs by more than one.
     """
-    task = f'{target}_inhibition'
 
     # filter compounds not tested on the target of interest
     df = df_copy[~df_copy[f'{target}_label'].isnull()]

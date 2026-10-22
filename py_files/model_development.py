@@ -1,40 +1,45 @@
-from datetime import datetime
-from functools import partial
 import random
 import warnings
 
+import data_preparation
 import deepchem as dc
-from deepchem import models
-from deepchem.models import GraphConvModel
-import numpy as np
+import model_evaluation
 import pandas as pd
 from rdkit import RDLogger
-from sklearn.metrics import log_loss
-
-import data_preparation
-import model_evaluation
+from sklearn.metrics import log_loss, roc_auc_score, accuracy_score, balanced_accuracy_score
 
 warnings.filterwarnings('ignore')
 RDLogger.DisableLog("rdApp.*")
 
 
 
-def dc_metrics() -> list:
-    """
-    Deepchem classifier metrics to log throughout training.
+# def dc_metrics() -> list:
+#     """
+#     Deepchem classifier metrics to log throughout training.
 
-    Returns:
-        list - list of Deepchem classifier metrics
+#     Returns:
+#         list - list of Deepchem classifier metrics
 
-    Raises:
-        ValueError: If the metrics are not 'roc_auc_score', 'accuracy_score', or 'balanced_accuracy_score'
-    """
-    # metrics to log throughout training
-    m1 = dc.metrics.Metric(dc.metrics.roc_auc_score)
-    m2 = dc.metrics.Metric(dc.metrics.accuracy_score)
-    m3 = dc.metrics.Metric(dc.metrics.balanced_accuracy_score)
+#     Raises:
+#         ValueError: If the metrics are not 'roc_auc_score', 'accuracy_score', or 'balanced_accuracy_score'
+#     """
+#     # metrics to log throughout training
+#     m1 = dc.metrics.Metric(dc.metrics.roc_auc_score)
+#     m2 = dc.metrics.Metric(dc.metrics.accuracy_score)
+#     m3 = dc.metrics.Metric(dc.metrics.balanced_accuracy_score)
 
-    return [m1, m2, m3]
+#     return [m1, m2, m3]
+
+
+def sklearn_metrics(true_labels, predictions) -> dict:
+
+    metrics = {'roc_auc_score': roc_auc_score(true_labels, predictions),
+               'accuracy_score': accuracy_score(true_labels, predictions >= 0.5),
+               'balanced_accuracy_score': balanced_accuracy_score(true_labels, predictions >= 0.5),
+               'log_loss': log_loss(true_labels, predictions, labels=[0, 1])
+               }
+
+    return metrics
 
 
 def define_parameters() -> dict:
@@ -73,7 +78,9 @@ def define_parameters() -> dict:
     return parameters
 
 
-def run_model(df: pd.DataFrame, 
+def run_model(train: pd.DataFrame, 
+                valid: pd.DataFrame,
+                test: pd.DataFrame,
                 targets=['app', 'tau'], 
                 save_images: bool =False, 
                 testing : bool = False):
@@ -100,8 +107,7 @@ def run_model(df: pd.DataFrame,
 
     # with the chosen parameters, create models for both tasks
     for target in targets:
-        # split pubchem data
-        train, valid, test = data_preparation.prepare_data(df, target)
+
         task = f'{target}_inhibition'
 
         # dictionary to store performance of model, parameters, true labels
@@ -131,8 +137,11 @@ def run_model(df: pd.DataFrame,
                                               'validation': valid}.items():
 
                     preds = model.predict(data_points)
-                    metrics = model.evaluate(data_points, metrics=dc_metrics())
-                    metrics['log_loss'] = log_loss(data_points.y, [i[0] for i in preds])
+                    # metrics = model.evaluate(data_points, metrics=dc_metrics())
+
+                    metrics = sklearn_metrics(data_points.y.ravel(), preds[:, 0, 1])
+
+                    # metrics['log_loss'] = log_loss(data_points.y, [i[0] for i in preds])
 
                     all_metrics_subset = model_evaluation.prediction_metrics(
                                                     all_metrics_dictionary = metrics, 
@@ -162,11 +171,20 @@ def run_model(df: pd.DataFrame,
 
 if __name__=='__main__':
 
-    TESTING = False
+    TESTING = True
+    TARGETS = ['app', 'tau']
+    NUMBER_OF_TESTS=5
+
     df = data_preparation.load_data(testing=TESTING)
 
-    ## each test performed for app and tau
-    number_tests=5
-    for i in range(number_tests):
-        # run_model(df, targets=['app'], save_images=True, testing=TESTING)
-        run_model(df, save_images=True, testing=TESTING)
+    for target in TARGETS:
+
+        train, valid, test = data_preparation.prepare_data(df, target=target)
+        for i in range(NUMBER_OF_TESTS):
+
+            run_model(train = train, 
+                        valid = valid, 
+                        test = test, 
+                        targets = [target], 
+                        save_images=True, 
+                        testing=TESTING)
