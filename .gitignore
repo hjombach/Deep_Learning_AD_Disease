@@ -1,14 +1,13 @@
-# Ignore Excel files
-*.xlsx
+
 
 # Large training run outputs (keep local only)
-model_results/
+# model_results/
 
 data/
 
 # Ignore CSV files
 *.csv
-
+*.txt
 # Ignore compiled files
 *.class
 *.jar
