@@ -49,11 +49,9 @@ def load_data(testing: bool=False):
     # Descriptive info
     print(f"{df['app_label'].sum():,} compounds inhibit APP")
     print(f"{df['tau_label'].sum():,} compounds inhibit Tau")
-    # display(df.head(3))
 
     df = generate_deepchem_graphs(df)
 
-    # df = df[['inchikey', 'dc_graph', 'app_label', 'tau_label']]
     df = df.set_index("inchikey")
 
     return df
@@ -87,9 +85,6 @@ def generate_deepchem_graphs(df):
         isinstance(graph, dc.feat.mol_graphs.ConvMol)
         for graph in graphs
     ])
-
-    # print(f"Valid graphs: {graph_mask.sum()}")
-    # print(f"Invalid graphs: {(~graph_mask).sum()}")
 
     df = df.iloc[np.flatnonzero(graph_mask)].copy()
     df["dc_graph"] = graphs[graph_mask]

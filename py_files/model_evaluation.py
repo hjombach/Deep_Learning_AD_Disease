@@ -309,6 +309,7 @@ def find_best_results(all_data_dictionary: dict):
     """
     # default to zero
     max_roc=max_balanced_acc=max_true_pos=max_precision=max_recall=0
+    min_log_loss = 100
 
     ## iterate over every epoch's validation data results
     for key, vals in all_data_dictionary['results'].items():
@@ -318,6 +319,7 @@ def find_best_results(all_data_dictionary: dict):
         all_data_dictionary['best_results']['num_true_positives'] = max([max_true_pos, vals['validation']['num_true_positives']])
         all_data_dictionary['best_results']['precision'] = max([max_precision, vals['validation']['precision']])
         all_data_dictionary['best_results']['recall'] = max([max_recall, vals['validation']['recall']])
+        all_data_dictionary['best_results']['log_loss'] = min([min_log_loss, vals['validation']['log_loss']])
 
     print(f"\nBest Results Throughout Model Training:")
     print_dictionary(all_data_dictionary['best_results'])
