@@ -12,25 +12,6 @@ warnings.filterwarnings('ignore')
 RDLogger.DisableLog("rdApp.*")
 
 
-
-# def dc_metrics() -> list:
-#     """
-#     Deepchem classifier metrics to log throughout training.
-
-#     Returns:
-#         list - list of Deepchem classifier metrics
-
-#     Raises:
-#         ValueError: If the metrics are not 'roc_auc_score', 'accuracy_score', or 'balanced_accuracy_score'
-#     """
-#     # metrics to log throughout training
-#     m1 = dc.metrics.Metric(dc.metrics.roc_auc_score)
-#     m2 = dc.metrics.Metric(dc.metrics.accuracy_score)
-#     m3 = dc.metrics.Metric(dc.metrics.balanced_accuracy_score)
-
-#     return [m1, m2, m3]
-
-
 def sklearn_metrics(true_labels, predictions) -> dict:
 
     metrics = {'roc_auc_score': roc_auc_score(true_labels, predictions),
@@ -62,8 +43,8 @@ def define_parameters() -> dict:
     dense_layer_size_options = [128, 256]
     # dense_layer_size_options=[128]
     batch_size_options = [500]
-    # epoch_list = [10]
-    epoch_list=[40, 50, 60]
+    epoch_list = [10]
+    # epoch_list=[40, 50, 60]
 
     parameters={}
 
@@ -119,7 +100,8 @@ def run_model(train: pd.DataFrame,
                                         batch_normalize=parameters['batch_normalize'],
                                         dropout=parameters['dropout'],
                                         dense_layer_size=parameters['dense_layer_size'],
-                                        batch_size=parameters['batch_size'])
+                                        batch_size=parameters['batch_size'],
+                                        model_dir="/home/paperspace/Deep_Learning_AD_Disease/model_weights")
         # display model type
         model_evaluation.print_dictionary(all_data_dictionary['model_parameters'])
 

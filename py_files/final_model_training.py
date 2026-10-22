@@ -28,6 +28,10 @@ import model_evaluation
 
 warnings.filterwarnings('ignore')
 
+from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
 
 def dc_metrics() -> list:
     '''
@@ -130,6 +134,9 @@ def load_prediction_set() -> pd.DataFrame:
     Raises:
         FileNotFoundError: If the pickle file is not found
     """
+    # full_directory = PROJECT_ROOT / "model_results" / f"{full_name}results"
+    # full_directory.mkdir(parents=True, exist_ok=True)
+
     base_path="/home/paperspace/Desktop/DL_Project/data/"
     df_file="full_prediction_set_fp_graphs.pickle"
     pred_set=pd.read_pickle(base_path+df_file)

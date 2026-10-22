@@ -9,7 +9,9 @@ import pandas as pd
 from matplotlib import ticker
 from openpyxl import Workbook
 from pytz import timezone
+from pathlib import Path
 
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # https://bobbyhadz.com/blog/python-typeerror-object-of-type-int64-is-not-json-serializable
 class NpEncoder(json.JSONEncoder):
@@ -150,24 +152,18 @@ def save_metrics(all_data_dictionary: dict, epochs_cut= None, testing: bool = Fa
         variable= strings_for_name[i]
         full_name+=str(variable)+"_"
 
-    base_path="/home/paperspace/Deep_Learning_AD_Disease"
-    full_directory=f"{base_path}/model_results/" + full_name + "results"
+    full_directory = PROJECT_ROOT / "model_results" / f"{full_name}results"
+    full_directory.mkdir(parents=True, exist_ok=True)
 
-    if not os.path.exists(full_directory):
-        os.mkdir(full_directory)
+    file_name = full_name + "results_file.txt"
+    full_path = full_directory / file_name
 
-    # # subfolder to store images / other data from run
-    file_name=full_name + "results_file.txt"
-    full_path=full_directory+"/"+file_name
-
-    # # create file for results
-    f = open(f'{full_path}', "w+")
-    f.write(json_str)
-    f.close()
+    with open(full_path, "w+") as f:
+        f.write(json_str)
 
     record_best_results(all_data_dictionary, s1, file_name, epochs_cut, testing=testing)
 
-    return full_directory
+    return str(full_directory)
 
 
 def record_best_results(all_data_dictionary: dict, model_time: str,
