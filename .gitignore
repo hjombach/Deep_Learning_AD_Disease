@@ -1,6 +1,9 @@
 # Ignore Excel files
 *.xlsx
 
+# Large training run outputs (keep local only)
+model_results/
+
 data/
 
 # Ignore CSV files

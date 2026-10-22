@@ -70,7 +70,7 @@ def define_parameters() -> dict:
 
     parameters={}
 
-    parameters['probability_threshold']=0.2
+    parameters['probability_threshold']=0.5
     parameters['batch_size']=random.choice(batch_size_options)
     parameters['graph_conv_layers']=random.choice(graph_conv_layers_options)
     parameters['batch_normalize']=random.choice(batchnorm_options)
@@ -128,31 +128,35 @@ def run_model(df: pd.DataFrame, targets=['app', 'tau'], save_images=False):
 
             # every n epochs evaluate the model
             if i % 2 == 0:
-                validation_preds = model.predict(valid)
-                metrics = model.evaluate(valid, metrics=dc_metrics())
-                metrics['log_loss'] = log_loss(valid.y, [i[0] for i in validation_preds])
+                
+                all_metrics = {}
+                # for data_set, data_points in enumerate([('training', train), ('validation', valid)]):
+                for data_set, data_points in {'training': train,
+                                              'validation': valid}.items():
+                    # print(type(train))
+                    # print(type(valid))
 
-                all_metrics = model_evaluation.prediction_metrics(
-                                                 all_metrics_dictionary = metrics, 
-                                                 data_set = 'validation', ### this is unclear what it should be
-                                                 predictions = validation_preds,
-                                                 true_labels = valid.y, 
-                                                 probability_threshold = probability_threshold
-                                                 )
-                # store performance results
-                all_data_dictionary["results"][i] = all_metrics
+
+                    preds = model.predict(data_points)
+                    metrics = model.evaluate(data_points, metrics=dc_metrics())
+                    metrics['log_loss'] = log_loss(data_points.y, [i[0] for i in preds])
+
+                    all_metrics_subset = model_evaluation.prediction_metrics(
+                                                    all_metrics_dictionary = metrics, 
+                                                    data_set = data_set, 
+                                                    predictions = preds,
+                                                    true_labels = data_points.y, 
+                                                    probability_threshold = probability_threshold
+                                                    )
+
+                    # all_metrics[data_set] = {}
+                    all_metrics[data_set] = all_metrics_subset.copy()
+                    # store performance results
+                    all_data_dictionary["results"][i] = all_metrics
 
                 print(f'\nEpoch {i}\n------------------------')
                 # output results
                 model_evaluation.print_dictionary(all_metrics['validation'])
-
-            # if after 10 epochs we don't have any predictions as active, stop training the model and try new
-                if i > 10 and all_data_dictionary['results'][i]['validation']['num_predicted_hits'] == 0:
-                    print("Model training ended early due to lack of predictions")
-                    all_data_dictionary = model_evaluation.find_best_results(all_data_dictionary)
-                    model_folder=model_evaluation.save_metrics(all_data_dictionary, i)
-                    model_evaluation.plot_performance(all_data_dictionary, save_image=save_images, save_location=model_folder)
-                    break
 
         # add elements to dictionary with highest scores for metrics
         all_data_dictionary = model_evaluation.find_best_results(all_data_dictionary)
@@ -168,7 +172,7 @@ if __name__=='__main__':
     df = data_preparation.load_data(testing=True)
 
     ## each test performed for app and tau
-    number_tests=5
+    number_tests=2
     for i in range(number_tests):
-        run_model(df, targets=['app'], save_images=True)
-        # run_model(df, save_images=True)
+        # run_model(df, targets=['app'], save_images=True)
+        run_model(df, save_images=True)
